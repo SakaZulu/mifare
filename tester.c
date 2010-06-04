@@ -15,21 +15,18 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 #include "acr120.h"
 
 int g_key_type = -1;
-int g_key[ACR120_KEY_SIZE];
+uint8_t g_key[ACR120_KEY_SIZE];
 
 void usage()
 {
 	printf("Usage: tester <command> ...\n");
 	printf("Available commands:\n");
-	exit(1);
-}
-
-void need_param(const char *s, int count)
-{
-	printf("Need %d additional parameter for `%s'\n");
 	exit(1);
 }
 
@@ -72,7 +69,6 @@ void do_read(int argc, char **argv)
 
 	if (!strcmp(argv[0], "block"))
 	{
-		if (argv[1]
 	}
 	else if (!strcmp(argv[0], "value"))
 	{
@@ -90,6 +86,10 @@ void do_read(int argc, char **argv)
 		usage();
 }
 
+void do_write(int argc, char **argv)
+{
+}
+
 int main (int argc, char **argv)
 {
 	/* Skip program name */
@@ -103,25 +103,25 @@ int main (int argc, char **argv)
 		if (!strcmp(argv[i], "-akey"))
 		{
 			if (!argv[i + 1])
-				usage_param(argv[i]);
+				usage();
 
 			skip = 2;
 			g_key_type = ACR120_KEY_TYPE_A;
-			parse_hex(agv[i + 1], g_key, ACR120_KEY_SIZE);
+			parse_hex(argv[i + 1], g_key, ACR120_KEY_SIZE);
 		}
 		else if (!strcmp(argv[i], "-bkey"))
 		{
 			if (!argv[i + 1])
-				usage_param(argv[i]);
+				usage();
 
 			skip = 2;
 			g_key_type = ACR120_KEY_TYPE_B;
-			parse_hex(agv[i + 1], g_key, ACR120_KEY_SIZE);
+			parse_hex(argv[i + 1], g_key, ACR120_KEY_SIZE);
 		}
 		else if (!strcmp(argv[i], "-amkey"))
 		{
 			if (!argv[i + 1])
-				usage_param(argv[i]);
+				usage();
 
 			skip = 2;
 			g_key_type = ACR120_KEY_TYPE_MASTER_A;
@@ -130,7 +130,7 @@ int main (int argc, char **argv)
 		else if (!strcmp(argv[i], "-bmkey"))
 		{
 			if (!argv[i + 1])
-				usage_param(argv[i]);
+				usage();
 
 			skip = 2;
 			g_key_type = ACR120_KEY_TYPE_MASTER_B;
@@ -157,4 +157,6 @@ int main (int argc, char **argv)
 		do_write(argc - 1, argv + 1);
 	else
 		usage();
+
+	return 0;
 }

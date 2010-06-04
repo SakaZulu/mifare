@@ -61,14 +61,15 @@ enum
 
 enum
 {
-	ACR120_MAX_SERIAL_SIZE  =  10,
-	ACR120_VALUE_SIZE       =   4,
-	ACR120_KEY_SIZE         =   6,
-	ACR120_BLOCK_SIZE       =  16,
-	ACR120_BLOCK_PER_SECTOR =   4,
-	ACR120_MAX_TAG          =  17,
-	ACR120_FRAME_OVERHEAD   =   5,
-	ACR120_MAX_FRAME_SIZE   = 260, /* 255 + 5 (overhead) */
+	ACR120_FIRMWARE_STR_SIZE =  20, /* Actually: "ACR120 x.xx" + 0 = 12 bytes */
+	ACR120_MAX_SERIAL_SIZE   =  10,
+	ACR120_VALUE_SIZE        =   4,
+	ACR120_KEY_SIZE          =   6,
+	ACR120_BLOCK_SIZE        =  16,
+	ACR120_BLOCK_PER_SECTOR  =   4,
+	ACR120_MAX_TAG           =  17,
+	ACR120_FRAME_OVERHEAD    =   5,
+	ACR120_MAX_FRAME_SIZE    = 260, /* 255 + 5 (overhead) */
 };
 
 enum
@@ -109,10 +110,12 @@ int acr120_login(int handle, uint8_t sector, int key_type, const void *key);
 int acr120_read_block(int handle, uint8_t block, void *data);
 int acr120_read_value(int handle, uint8_t block, int32_t *value);
 int acr120_read_eeprom(int handle, uint8_t reg, uint8_t *value);
+int acr120_read_llreg(int handle, uint8_t reg, uint8_t *value);
 
 int acr120_write_block(int handle, uint8_t block, void *data);
 int acr120_write_value(int handle, uint8_t block, int32_t value);
 int acr120_write_eeprom(int handle, uint8_t reg, uint8_t value);
+int acr120_write_llreg(int handle, uint8_t reg, uint8_t value);
 int acr120_write_master_key(int handle, uint8_t index, void *key);
 
 int acr120_write_user_port(int handle, uint8_t value);
@@ -131,5 +134,8 @@ int acr120_set_station_id(int handle, uint8_t sid);
 int acr120_transmit_frame(int handle, uint8_t option,
 		void *data, uint8_t data_len,
 		void *reply, uint8_t *reply_len);
+
+int acr120_get_firmware_version(int handle, char *version);
+int acr120_set_frame_waiting_index(int handle, uint8_t fwi);
 
 #endif

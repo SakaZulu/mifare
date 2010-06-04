@@ -215,6 +215,17 @@ int acr120_open(const char *dev, int baud, uint8_t sid)
 	struct acr120_context *ctx;
 	int handle, fd;
 
+	/* Auto detect baud-rate */
+	if (baud == 0)
+	{
+		int bauds[5] = { B9600, B19200, B38400, B57600, B115200 };
+		int i, ret;
+		for (i = 0; i < 5; i++)
+			if ((ret = acr120_open(dev, bauds[i], sid)) >= 0)
+				return ret;
+		return ret;
+	}
+
 	/* Search available new handle */
 	for (handle = 0; handle < MAX_HANDLE; handle++)
 	{
@@ -566,6 +577,29 @@ int acr120_read_eeprom(int handle, uint8_t reg, uint8_t *value)
 	return 0;
 }
 
+int acr120_read_llreg(int handle, uint8_t reg, uint8_t *value)
+{
+	struct acr120_context *ctx = get_context(handle);
+	if (ctx == 0) return ACR120_ERROR_INVALID_HANDLE;
+
+	uint8_t f[ACR120_MAX_FRAME_SIZE];
+
+	frame_init(f, ctx->sid);
+	frame_byte(f, 'z');
+	frame_byte(f, 'r');
+	frame_byte(f, reg);
+	frame_done(f);
+	
+	if (write_frame(ctx, f) < 0)
+		return -1;
+
+	if (read_frame(ctx, f) < 0)
+		return -1;
+
+	*value = f[DATA_POS];
+	return 0;
+}
+
 int acr120_write_block(int handle, uint8_t block, void *data)
 {
 	struct acr120_context *ctx = get_context(handle);
@@ -639,6 +673,30 @@ int acr120_write_eeprom(int handle, uint8_t reg, uint8_t value)
 
 	return 0;
 }
+
+int acr120_write_llreg(int handle, uint8_t reg, uint8_t value)
+{
+	struct acr120_context *ctx = get_context(handle);
+	if (ctx == 0) return ACR120_ERROR_INVALID_HANDLE;
+
+	uint8_t f[ACR120_MAX_FRAME_SIZE];
+	
+	frame_init(f, ctx->sid);
+	frame_byte(f, 'z');
+	frame_byte(f, 'w');
+	frame_byte(f, reg);
+	frame_byte(f, value);
+	frame_done(f);
+
+	if (write_frame(ctx, f) < 0)
+		return -1;
+
+	if (read_frame(ctx, f) < 0)
+		return -1;
+
+	return 0;
+}
+
 
 int acr120_write_master_key(int handle, uint8_t index, void *key)
 {
@@ -914,3 +972,54 @@ int acr120_transmit_frame(int handle, uint8_t option,
 	return 0;
 }
 
+int acr120_get_firmware_version(int handle, char *version)
+{
+	struct acr120_context *ctx = get_context(handle);
+	if (ctx == 0) return ACR120_ERROR_INVALID_HANDLE;
+
+	uint8_t f[ACR120_MAX_FRAME_SIZE];
+	int len;
+
+	frame_init(f, ctx->sid);
+	frame_byte(f, 'z');
+	frame_byte(f, 'v');
+	frame_done(f);
+
+	if (write_frame(ctx, f) < 0)
+		return -1;
+
+	if (read_frame(ctx, f) < 0)
+		return -1;
+
+	len = f[LEN_POS];
+	if (len >= ACR120_FIRMWARE_STR_SIZE)
+		len = ACR120_FIRMWARE_STR_SIZE - 1;
+
+	memcpy(version, &f[DATA_POS], len);
+	version[len] = 0;
+
+	return 0;
+}
+
+
+int acr120_set_frame_waiting_index(int handle, uint8_t fwi)
+{
+	struct acr120_context *ctx = get_context(handle);
+	if (ctx == 0) return ACR120_ERROR_INVALID_HANDLE;
+
+	uint8_t f[ACR120_MAX_FRAME_SIZE];
+	
+	frame_init(f, ctx->sid);
+	frame_byte(f, 'z');
+	frame_byte(f, 'f');
+	frame_byte(f, fwi);
+	frame_done(f);
+
+	if (write_frame(ctx, f) < 0)
+		return -1;
+
+	if (read_frame(ctx, f) < 0)
+		return -1;
+
+	return 0;
+}

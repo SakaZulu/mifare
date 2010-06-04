@@ -1,14 +1,25 @@
-CFLAGS=-Wall -O2 -g -I /home/arkusuma/Projects/acr120
+CFLAGS = -Wall -O2
 
-all: test/select test/read test/write
+SRCS = acr120.c tester.c
+OBJS = $(SRCS:.c=.o)
 
-test/select: test/select.o acr120.o
+.PHONY: all clean
 
-test/read: test/read.o acr120.o
-
-test/write: test/write.o acr120.o
-
-acr120.o:
+all: $(OBJS)
 
 clean:
-	rm -f *.o test/*.o test/select test/read test/write
+	rm -f $(OBJS)
+
+# Auto Dependencies: http://make.paulandlesley.org/autodep.html
+DEPDIR = .deps
+df = $(DEPDIR)/$(*F)
+
+%.o : %.c
+	@mkdir -p $(DEPDIR)
+	$(COMPILE.c) -Wp,-MD,$(df).d -o $@ $<
+	@cp $(df).d $(df).P; \
+		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+		    -e '/^$$/ d' -e 's/$$/ :/' < $(df).d >> $(df).P; \
+		rm -f $(df).d
+
+-include $(SRCS:%.c=$(DEPDIR)/%.P)
