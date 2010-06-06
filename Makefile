@@ -1,25 +1,60 @@
+BUILDDIR := build
+
+ifeq (,$(SRCDIR))
+
+################################
+# Parent, run in root directory
+################################
+
+.SUFFIXES:
+
+ARCH := $(shell uname -m)
+ARCHDIR := $(BUILDDIR)/$(ARCH)
+
+MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/Makefile \
+						 SRCDIR=$(CURDIR) ARCH=$(ARCH) $(MAKECMDGOALS)
+
+.PHONY: $(ARCHDIR)
+$(ARCHDIR):
+	+@[ -d $@ ] || mkdir -p $@
+	+@$(MAKETARGET)
+
+Makefile : ;
+
+% :: $(ARCHDIR) ; :
+
+.PHONY: clean
+clean:
+	+@rm -rf $(BUILDDIR)
+
+else
+
+################################
+# Child, run in build directory
+################################
+
+VPATH = $(SRCDIR)
+
+%.o: %.c
+	$(COMPILE.c) -Wp,-MD,$*.d -o $@ $<
+	@cp $*.d $*.P; \
+		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+		-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
+		rm -f $*.d
+
 CFLAGS = -Wall -O2
 
-SRCS = acr120.c tester.c
-OBJS = $(SRCS:.c=.o)
+APPS = fetcher tester select read write
 
-.PHONY: all clean
+.PHONY: all
+all: $(APPS)
 
-all: $(OBJS)
+fetcher: fetcher.o acr120.o
+tester: tester.o acr120.o
+select: select.o acr120.o
+read: read.o acr120.o
+write: write.o acr120.o
 
-clean:
-	rm -f $(OBJS)
+-include *.P
 
-# Auto Dependencies: http://make.paulandlesley.org/autodep.html
-DEPDIR = .deps
-df = $(DEPDIR)/$(*F)
-
-%.o : %.c
-	@mkdir -p $(DEPDIR)
-	$(COMPILE.c) -Wp,-MD,$(df).d -o $@ $<
-	@cp $(df).d $(df).P; \
-		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-		    -e '/^$$/ d' -e 's/$$/ :/' < $(df).d >> $(df).P; \
-		rm -f $(df).d
-
--include $(SRCS:%.c=$(DEPDIR)/%.P)
+endif
