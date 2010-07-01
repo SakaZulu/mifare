@@ -17,13 +17,17 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include "acr120.h"
+#include "mifare.h"
+#include "acr120s.h"
+#include "mf1rw.h"
 
 #define TTY_DEV "/dev/ttyUSB0"
+#define PROG "cmd"
 
-void dispatch(acr120_tag_t *tag, uint8_t *data)
+void dispatch(mifare_tag_t *tag, uint8_t *data)
 {
 	char serial[21], sdata[33], *p;
+	char cmd[256];
 
 	int i;
 	p = serial;
@@ -31,63 +35,78 @@ void dispatch(acr120_tag_t *tag, uint8_t *data)
 		p += sprintf(p, "%02x", tag->serial[i]);
 
 	p = sdata;
-	for (i = 0; i < ACR120_BLOCK_SIZE; i++)
+	for (i = 0; i < MIFARE_BLOCK_SIZE; i++)
 		p += sprintf(p, "%02x", data[i]);
 
-	printf("cmd %s %s\n", serial, sdata);
+	sprintf(cmd, "%s %s %s", PROG, serial, sdata);
+	puts(cmd);
 }
+
+#define MAX_TAG 16
 
 int main()
 {
-	acr120_tag_t tag, last_tag;
-	int i;
+	mifare_tag_t tags[MAX_TAG], last_tags[MAX_TAG];
+	mifare_dev_t dev;
+	int i, j, count, last_count;
 
-	int handle = acr120_open(TTY_DEV, 0, 0);
+	dev.device = TTY_DEV;
+	dev.baud = 0;
+	dev.sid = 0;
+	
+	mifare_ops = &acr120s_ops;
+	int handle = mifare_open(&dev);
 	if (handle < 0)
 	{
-		perror(TTY_DEV);
-		return 1;
-	}
-
-	acr120_write_user_port(handle, 1);
-
-	for (;;)
-	{
-		memset(&tag, 0, sizeof(tag));
-		int ret = acr120_select(handle, &tag);
-		if (ret != 0 && ret != ACR120_ERROR_NO_TAG)
-			break;
-
-		if (memcmp(&tag, &last_tag, sizeof(tag)) == 0)
-				usleep(200000);
-		else
+		mifare_ops = &mf1rw_ops;
+		handle = mifare_open(&dev);
+		if (handle < 0)
 		{
-			if (ret != ACR120_ERROR_NO_TAG)
-			{
-				uint8_t block1[ACR120_BLOCK_SIZE];
-				uint8_t key = 0;
-				if (acr120_login(handle, 0, ACR120_KEY_TYPE_MASTER_A, &key) < 0)
-					continue;
-				if (acr120_read_block(handle, 1, block1) < 0)
-					continue;
-
-				dispatch(&tag, block1);
-
-				int flip = 0;
-				for (i = 0; i < 1; i++)
-				{
-					acr120_write_user_port(handle, 2 | flip);
-					usleep(100000 / 1);
-					flip ^= 1;
-				}
-				acr120_write_user_port(handle, 1);
-				usleep(100000);
-			}
-			memcpy(&last_tag, &tag, sizeof(tag));
+			fprintf(stderr, "No device at %s.\n", dev.device);
+			return 1;
 		}
 	}
 
-	acr120_close(handle);
+	if (mifare_ops == &acr120s_ops)
+		acr120s_write_user_port(handle, 1);
+
+	count = 0;
+	for (;; usleep(200000))
+	{
+		last_count = count;
+		memcpy(last_tags, tags, count * sizeof(mifare_tag_t));
+
+		count = MAX_TAG;
+		if (mifare_detect(handle, tags, &count))
+			break;
+
+		for (i = 0; i < count; i++)
+		{
+			for (j = 0; j < last_count; j++)
+				if (memcmp(&tags[i], &last_tags[j], sizeof(mifare_tag_t)) == 0)
+					break;
+				
+			/* New tag detected */
+			if (j >= last_count)
+			{
+				uint8_t block[MIFARE_BLOCK_SIZE];
+				uint8_t key[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+
+				if (mifare_select(handle, &tags[i]))
+					continue;
+				if (mifare_login(handle, 0, 0, key))
+					continue;
+				if (mifare_read_block(handle, 1, block))
+					continue;
+
+				dispatch(&tags[i], block);
+
+				mifare_beep(handle, 50);
+			}
+		}
+	}
+
+	mifare_close(handle);
 
 	return 0;
 }

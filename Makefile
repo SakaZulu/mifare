@@ -42,18 +42,19 @@ VPATH = $(SRCDIR)
 		-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
 		rm -f $*.d
 
-CFLAGS = -Wall -O2
+APPS = fetcher
+OBJS = mifare.o acr120s.o mf1rw.o utils.o
 
-APPS = fetcher tester select read write
+CFLAGS = -Wall -O2
 
 .PHONY: all
 all: $(APPS)
 
-fetcher: fetcher.o acr120.o
-tester: tester.o acr120.o
-select: select.o acr120.o
-read: read.o acr120.o
-write: write.o acr120.o
+fetcher: fetcher.o $(OBJS)
+#tester: tester.o $(OBJS)
+#select: select.o $(OBJS)
+#read: read.o $(OBJS)
+#write: write.o $(OBJS)
 
 -include *.P
 
