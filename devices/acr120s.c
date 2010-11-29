@@ -14,6 +14,14 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Device information:
+ * http://www.acs.com.hk/index.php?pid=product&id=ACR120
+ *
+ * Protocol description:
+ * http://www.acs.com.hk/drivers/eng/CMP_ACR120S_v2.4.pdf
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>

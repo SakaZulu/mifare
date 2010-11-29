@@ -1,61 +1,19 @@
-BUILDDIR := build
+BUILDDIR = build
 
-ifeq (,$(SRCDIR))
+DIRS = devices \
+       tools/fetcher
 
-################################
-# Parent, run in root directory
-################################
+all: $(BUILDDIR)
+	@for i in $(DIRS); do \
+		make -C $(BUILDDIR) -f $(CURDIR)/$$i/Makefile \
+		ROOTDIR=$(CURDIR) SRCDIR=$(CURDIR)/$$i \
+		--no-print-directory; \
+	done
 
-.SUFFIXES:
-
-ARCH := $(shell uname -m)
-ARCHDIR := $(BUILDDIR)/$(ARCH)
-
-MAKETARGET = $(MAKE) --no-print-directory -C $@ -f $(CURDIR)/Makefile \
-						 SRCDIR=$(CURDIR) ARCH=$(ARCH) $(MAKECMDGOALS)
-
-.PHONY: $(ARCHDIR)
-$(ARCHDIR):
-	+@[ -d $@ ] || mkdir -p $@
-	+@$(MAKETARGET)
-
-Makefile : ;
-
-% :: $(ARCHDIR) ; :
-
-.PHONY: clean
 clean:
-	+@rm -rf $(BUILDDIR)
+	@rm -fr $(BUILDDIR)
 
-else
+$(BUILDDIR):
+	@mkdir -p $(BUILDDIR)
 
-################################
-# Child, run in build directory
-################################
-
-VPATH = $(SRCDIR)
-
-%.o: %.c
-	$(COMPILE.c) -Wp,-MD,$*.d -o $@ $<
-	@cp $*.d $*.P; \
-		sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
-		-e '/^$$/ d' -e 's/$$/ :/' < $*.d >> $*.P; \
-		rm -f $*.d
-
-APPS = fetcher
-OBJS = mifare.o acr120s.o mf1rw.o utils.o
-
-CFLAGS = -Wall -O2
-
-.PHONY: all
-all: $(APPS)
-
-fetcher: fetcher.o $(OBJS)
-#tester: tester.o $(OBJS)
-#select: select.o $(OBJS)
-#read: read.o $(OBJS)
-#write: write.o $(OBJS)
-
--include *.P
-
-endif
+.PHONY: all clean $(BUILDDIR)

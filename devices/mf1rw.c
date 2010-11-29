@@ -14,6 +14,15 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/*
+ * Device information:
+ * http://rhombus.com.cn
+ * Search for RHMMF1RW
+ *
+ * Protocol description:
+ * http://rhombus.com.cn/en/drivers/rw_protocol_eng.pdf
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

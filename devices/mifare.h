@@ -10,6 +10,12 @@ typedef struct
 	int sid;
 } mifare_dev_t;
 
+enum 
+{
+	MIFARE_KEY_TYPE_A,
+	MIFARE_KEY_TYPE_B
+};
+
 #define MIFARE_MAX_SERIAL_SIZE 10
 #define MIFARE_BLOCK_SIZE      16
 
@@ -28,8 +34,8 @@ typedef struct
 	int (*detect)(int handle, mifare_tag_t *tags, int *count);
 	int (*select)(int handle, mifare_tag_t *tag);
 
-	int (*login)(int handle, uint8_t sector, int type, const void *key);
-	int (*login_stored)(int handle, uint8_t sector, int type, int key_no);
+	int (*login)(int handle, uint8_t sector, int key_type, const void *key);
+	int (*login_stored)(int handle, uint8_t sector, int key_type, int key_no);
 
 	int (*read_block)(int handle, uint8_t block, void *data);
 	int (*write_block)(int handle, uint8_t block, void *data);

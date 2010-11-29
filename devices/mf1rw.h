@@ -60,6 +60,18 @@ enum
 	MF1RW_VALUE_MODE_RESTORE   = 0xc2,
 };
 
+enum
+{
+	MF1RW_REQUEST_MODE_NO_HALTED = 0,
+	MF1RW_REQUEST_MODE_ALL = 1,
+};
+
+enum
+{
+	MF1RW_AUTH_MODE_KEY_A = 0,
+	MF1RW_AUTH_MODE_KEY_B = 1,
+};
+
 int mf1rw_open(const char *dev);
 int mf1rw_close(int handle);
 

@@ -1,0 +1,16 @@
+<config>
+  <devices>
+    <device id="device01" dev="/dev/ttyUSB0" baud="115200" type="mf1rw"/>
+  </devices>
+  <keys>
+    <key sector="0" type="a" bytes="ffffffffffff"/>
+  </keys>
+  <items>
+    <item type="id"/>
+    <item type="uid"/>
+    <item type="bytes" block="1" offset="0" size="16"/>
+    <item type="string" block="1"/>
+    <item type="value" block="2"/>
+  </items>
+  <exec cmd="echo"/>
+</config>

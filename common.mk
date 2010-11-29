@@ -1,0 +1,2 @@
+VPATH = $(SRCDIR)
+CFLAGS = -Wall -O2
