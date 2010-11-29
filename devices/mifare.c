@@ -111,6 +111,13 @@ int mifare_copy_value(int handle, uint8_t from, uint8_t to)
 	return -1;
 }
 
+int mifare_write_key(int handle, int num, const void *key)
+{
+	if (mifare_ops && mifare_ops->write_key)
+		return mifare_ops->write_key(handle, num, key);
+	return -1;
+}
+
 int mifare_beep(int handle, int msec)
 {
 	if (mifare_ops && mifare_ops->beep)

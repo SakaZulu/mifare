@@ -1,7 +1,8 @@
 BUILDDIR = build
 
 DIRS = devices \
-       tools/fetcher
+       tools/fetcher \
+       tools/mfutils
 
 all: $(BUILDDIR)
 	@for i in $(DIRS); do \

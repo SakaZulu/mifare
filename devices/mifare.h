@@ -30,7 +30,7 @@ typedef struct
 {
 	int (*open)(mifare_dev_t *dev);
 	int (*close)(int handle);
-
+	
 	int (*detect)(int handle, mifare_tag_t *tags, int *count);
 	int (*select)(int handle, mifare_tag_t *tag);
 
@@ -46,6 +46,8 @@ typedef struct
 	int (*inc_value)(int handle, uint8_t block, int32_t value);
 	int (*dec_value)(int handle, uint8_t block, int32_t value);
 	int (*copy_value)(int handle, uint8_t from, uint8_t to);
+
+	int (*write_key)(int handle, int num, const void *key);
 
 	int (*beep)(int handle, int msec);
 
@@ -71,6 +73,8 @@ int mifare_write_value(int handle, uint8_t block, int32_t value);
 int mifare_inc_value(int handle, uint8_t block, int32_t value);
 int mifare_dec_value(int handle, uint8_t block, int32_t value);
 int mifare_copy_value(int handle, uint8_t from, uint8_t to);
+
+int mifare_write_key(int handle, int num, const void *key);
 
 int mifare_beep(int handle, int msec);
 

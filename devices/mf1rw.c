@@ -785,27 +785,73 @@ static int _mf1rw_write_block(int handle, uint8_t block, void *data)
 
 static int _mf1rw_read_value(int handle, uint8_t block, int32_t *value)
 {
-	return -1;
+	uint8_t b[16];
+	int ret = mf1rw_read_block(handle, block, b);
+	if (ret < 0)
+		return ret;
+	int i;
+	for (i = 0; i < 4; i++)
+		if (b[i] != (uint8_t) ~b[i + 4] || b[i] != b[i + 8])
+			return -1;
+	if (b[12] != b[14] || b[13] != b[15] || b[12] != (uint8_t) ~b[13])
+		return -1;
+	*value =  b[0] | b[1] << 8 | b[2] << 16 | b[3] << 24;
+	return 0;
 }
 
 static int _mf1rw_write_value(int handle, uint8_t block, int32_t value)
 {
-	return -1;
+	uint8_t b[16];
+	uint32_t v = value, nv = ~value;
+	b[0] = v;
+	b[1] = v >> 8;
+	b[2] = v >> 16;
+	b[3] = v >> 24;
+	b[4] = nv;
+	b[6] = nv >> 16;
+	b[5] = nv >> 8;
+	b[7] = nv >> 24;
+	memcpy(&b[8], &b[0], 4);
+	b[12] = 0;
+	b[13] = 0xff;
+	b[14] = 0;
+	b[15] = 0xff;
+	return mf1rw_write_block(handle, block, b);
 }
 
 static int _mf1rw_inc_value(int handle, uint8_t block, int32_t value)
 {
-	return mf1rw_inc_value(handle, block, value);
+	int ret = mf1rw_inc_value(handle, block, value);
+	if (ret < 0)
+		return ret;
+	ret = mf1rw_transfer(handle, block);
+	return ret;
 }
 
 static int _mf1rw_dec_value(int handle, uint8_t block, int32_t value)
 {
-	return mf1rw_dec_value(handle, block, value);
+	int ret = mf1rw_dec_value(handle, block, value);
+	if (ret < 0)
+		return ret;
+	ret = mf1rw_transfer(handle, block);
+	return ret;
 }
 
 static int _mf1rw_copy_value(int handle, uint8_t from, uint8_t to)
 {
-	return -1;
+	int32_t value;
+	int ret = _mf1rw_read_value(handle, from, &value);
+	if (ret < 0)
+		return ret;
+	return _mf1rw_write_value(handle, to, value);
+}
+
+static int _mf1rw_write_key(int handle, int num, const void *key)
+{
+	int ret = mf1rw_load_key(handle, 0, num, key);
+	if (ret < 0)
+		return ret;
+	return mf1rw_config(handle);
 }
 
 static int _mf1rw_beep(int handle, int msec)
@@ -834,6 +880,8 @@ mifare_ops_t mf1rw_ops =
 	.inc_value = _mf1rw_inc_value,
 	.dec_value = _mf1rw_dec_value,
 	.copy_value = _mf1rw_copy_value,
+
+	.write_key = _mf1rw_write_key,
 
 	.beep = _mf1rw_beep,
 };

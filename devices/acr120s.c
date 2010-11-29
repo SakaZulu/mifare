@@ -535,7 +535,7 @@ int acr120s_read_llreg(int handle, uint8_t reg, uint8_t *value)
 	return 0;
 }
 
-int acr120s_write_block(int handle, uint8_t block, void *data)
+int acr120s_write_block(int handle, uint8_t block, const void *data)
 {
 	struct acr120s_context *ctx = get_context(handle);
 	if (ctx == 0) return ACR120S_ERROR_INVALID_HANDLE;
@@ -632,8 +632,7 @@ int acr120s_write_llreg(int handle, uint8_t reg, uint8_t value)
 	return 0;
 }
 
-
-int acr120s_write_master_key(int handle, uint8_t index, void *key)
+int acr120s_write_master_key(int handle, uint8_t index, const void *key)
 {
 	struct acr120s_context *ctx = get_context(handle);
 	if (ctx == 0) return ACR120S_ERROR_INVALID_HANDLE;
@@ -1035,6 +1034,11 @@ static int _acr120s_copy_value(int handle, uint8_t from, uint8_t to)
 	return acr120s_copy_value(handle, from, to, 0);
 }
 
+static int _acr120s_write_key(int handle, int num, const void *key)
+{
+	return acr120s_write_master_key(handle, num, key);
+}
+
 static int _acr120s_beep(int handle, int msec)
 {
 	acr120s_write_user_port(handle, 2);
@@ -1063,6 +1067,8 @@ mifare_ops_t acr120s_ops =
 	.inc_value = _acr120s_inc_value,
 	.dec_value = _acr120s_dec_value,
 	.copy_value = _acr120s_copy_value,
+
+	.write_key = _acr120s_write_key,
 
 	.beep = _acr120s_beep,
 };

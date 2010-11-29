@@ -141,6 +141,8 @@ struct config
 	struct item *items;
 	char *cmd;
 	int item_count;
+	int daemon;
+	char *config_file;
 } config;
 
 #define BUFFER_SIZE 4096
@@ -167,7 +169,7 @@ int lookup(const char *key, struct dict *dict, int *result)
 
 void parse_hex(const char *hex, void *key, int size)
 {
-	char *k = &((char *) key)[size - 1];
+	uint8_t *k = &((uint8_t *) key)[size - 1];
 	int i, digit = 0;
 	memset(key, 0, size);
 	for (i = strlen(hex) - 1; i >= 0; i--)
@@ -388,16 +390,15 @@ void end_handler(void *data, const char *name)
 	ctx->depth--;
 }
 
-void read_config()
+void read_config(const char *cfg)
 {
-	FILE *fp = fopen("config.example", "r");
+	FILE *fp = fopen(cfg, "r");
 	struct config_ctx ctx;
 	if (fp == 0)
 	{
 		fprintf(stderr, "Config file not found.\n");
 		exit(1);
 	}
-	memset(&config, 0, sizeof(config));
 	memset(&ctx, 0, sizeof(ctx));
 	XML_Parser parser = XML_ParserCreate(0);
 	XML_SetUserData(parser, &ctx);
@@ -627,7 +628,8 @@ void start_device(struct device *device)
 	int count, last_count;
 	int i, j, handle;
 
-	daemonize();
+	if (config.daemon)
+		daemonize();
 	dev.device = device->dev;
 	dev.baud = device->baud;
 	dev.sid = 0;
@@ -672,7 +674,9 @@ void start_device(struct device *device)
 			if (mifare_detect(handle, tags, &count))
 				break;
 
-			puts("1");
+			struct stat s;
+			if (stat(device->dev, &s) == -1)
+				break;
 
 			for (i = 0; i < count; i++)
 			{
@@ -685,12 +689,32 @@ void start_device(struct device *device)
 					fetch(handle, device, &tags[i]);
 			}
 		}
+		mifare_close(handle);
 	}
 }
 
-int main()
+int main(int argc, char **argv)
 {
-	read_config();
+	int i;
+	memset(&config, 0, sizeof(config));
+	config.config_file = "config.example";
+	for (i = 1; i < argc; i++)
+	{
+		if (!strcmp(argv[i], "-d"))
+			config.daemon = 1;
+		else if (!strcmp(argv[i], "-c"))
+			config.config_file = argv[++i];
+		else
+		{
+			printf(
+					"fetcher - Mifare classic fetcher daemon\n"
+					"Usage: fetcher [-d] [-c <cfg>]\n"
+					"  -d        Run as daemon\n"
+					"  -c <cfg>  Specify configuration file\n");
+			exit(1);
+		}
+	}
+	read_config(config.config_file);
 	struct device *dev;
 	for (dev = config.devices; dev; dev = dev->next)
 		start_device(dev);
