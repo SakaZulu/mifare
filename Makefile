@@ -1,6 +1,7 @@
 BUILDDIR = build
 
-DIRS = devices \
+DIRS = libs \
+       devices \
        tools/fetcher \
        tools/mfutils
 

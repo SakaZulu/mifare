@@ -1,0 +1,8 @@
+<config>
+	<device dev="/dev/ttyUSB0" baud="9600" type="mf1rw"/>
+	<key sector="0" type="a" bytes="ffffffffffff"/>
+	<key sector="1" type="a" bytes="ffffffffffff"/>
+  <key sector="2" type="a" bytes="ffffffffffff"/>
+  <id sector="0" magic="12345678" aes="9183b775bea8e0ff8e567642dff2346f14468ffc2a1851155862c5cb4e228e9a"/>
+  <purse sector="1"/>
+</config>

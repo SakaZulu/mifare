@@ -20,6 +20,7 @@ mifare_ops_t *mifare_ops = 0;
 
 int mifare_open(mifare_dev_t *dev)
 {
+	mifare_ops = dev->ops;
 	if (mifare_ops && mifare_ops->open)
 		return mifare_ops->open(dev);
 	return -1;

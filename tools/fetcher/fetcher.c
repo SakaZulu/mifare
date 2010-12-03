@@ -72,16 +72,10 @@ struct device
 	struct device *next;
 };
 
-enum
-{
-	KEY_TYPE_A,
-	KEY_TYPE_B
-};
-
 struct dict key_type_dict[] = 
 {
-	{ "a", KEY_TYPE_A },
-	{ "b", KEY_TYPE_B },
+	{ "a", MIFARE_KEY_TYPE_A },
+	{ "b", MIFARE_KEY_TYPE_B },
 	{ 0, 0 }
 };
 
@@ -149,7 +143,6 @@ struct config
 
 struct config_ctx
 {
-	char *parent;
 	struct device *last_device;
 	struct key *last_key;
 	struct item *last_item;
@@ -165,28 +158,6 @@ int lookup(const char *key, struct dict *dict, int *result)
 			return 1;
 		}
 	return 0;
-}
-
-void parse_hex(const char *hex, void *key, int size)
-{
-	uint8_t *k = &((uint8_t *) key)[size - 1];
-	int i, digit = 0;
-	memset(key, 0, size);
-	for (i = strlen(hex) - 1; i >= 0; i--)
-	{
-		char c = tolower(hex[i]);
-		if (c >= '0' && c <= '9')
-			*k |= (c - '0') << 4;
-		else if (c >= 'a' && c <= 'f')
-			*k |= (c - 'a' + 10) << 4;
-		else
-			continue;
-
-		if ((++digit & 1) == 0)
-			k--;
-		else
-			*k >>= 4;
-	}
 }
 
 void start_handler(void *data, const char *name, const char **atts)
@@ -215,20 +186,9 @@ void start_handler(void *data, const char *name, const char **atts)
 						goto error_attr;
 				}
 				if (!atts[i])
-				{
-					fprintf(stderr, "Expecting 'cmd' attribute for 'exec' tag.\n");
-					exit(1);
-				}
+					ERROR("Expecting `cmd' attribute for `exec' tag");
 			}
-			else if (strcmp(name, "devices") &&	strcmp(name, "keys") &&
-					strcmp(name, "items") && strcmp(name, "exec"))
-				goto error_tag;
-			free(ctx->parent);
-			ctx->parent = strdup(name);
-			break;
-
-		case 3:
-			if (!strcmp(name, "device") && !strcmp(ctx->parent, "devices"))
+			else if (!strcmp(name, "device"))
 			{
 				struct device *device = calloc(1, sizeof(*device));
 				int i;
@@ -260,17 +220,14 @@ void start_handler(void *data, const char *name, const char **atts)
 						goto error_attr;
 				}
 				if (!device->has_id || !device->has_dev || !device->has_baud || !device->has_type)
-				{
-					fprintf(stderr, "Required attribute for 'device' tag is missing.\n");
-					exit(1);
-				}
+					ERROR("Required attribute for `device' tag is missing");
 				if (ctx->last_device == 0)
 					config.devices = device;
 				else
 					ctx->last_device->next = device;
 				ctx->last_device = device;
 			}
-			else if (!strcmp(name, "key") && !strcmp(ctx->parent, "keys"))
+			else if (!strcmp(name, "key"))
 			{
 				struct key *key = calloc(1, sizeof(*key));
 				int i;
@@ -301,22 +258,16 @@ void start_handler(void *data, const char *name, const char **atts)
 						goto error_attr;
 				}
 				if (!(key->has_bytes ^ key->has_eeprom))
-				{
-					fprintf(stderr, "Key bytes and key eeprom cannot co-exists.\n");
-					exit(1);
-				}
+					ERROR("Key bytes and key eeprom cannot co-exists");
 				if (!key->has_sector || !key->has_type)
-				{
-					fprintf(stderr, "Required attribute for 'key' tag is missing.\n");
-					exit(1);
-				}
+					ERROR("Required attribute for 'key' tag is missing");
 				if (ctx->last_key == 0)
 					config.keys = key;
 				else
 					ctx->last_key->next = key;
 				ctx->last_key= key;
 			}
-			else if (!strcmp(name, "item") && !strcmp(ctx->parent, "items"))
+			else if (!strcmp(name, "item"))
 			{
 				struct item *item = calloc(1, sizeof(*item));
 				int i;
@@ -327,10 +278,7 @@ void start_handler(void *data, const char *name, const char **atts)
 					if (!strcmp(atts[i], "type"))
 					{
 						if (!lookup(atts[i + 1], item_type_dict, &item->type))
-						{
-							fprintf(stderr, "Invalid item type '%s'.\n", atts[i + 1]);
-							exit(1);
-						}
+							ERROR("Invalid item type `%s'", atts[i + 1]);
 						item->has_type = 1;
 					}
 					else if (!strcmp(atts[i], "block"))
@@ -369,19 +317,13 @@ void start_handler(void *data, const char *name, const char **atts)
 	return;
 
 error_tag:
-	free(ctx->parent);
-	fprintf(stderr, "Invalid tag '%s'.\n", name);
-	exit(1);
+	ERROR("Invalid tag `%s'", name);
 
 error_attr:
-	free(ctx->parent);
-	fprintf(stderr, "Invalid attribute '%s'.\n", atts[i]);
-	exit(1);
+	ERROR("Invalid attribute `%s'", atts[i]);
 
 error_value:
-	free(ctx->parent);
-	fprintf(stderr, "Invalid attribute's value '%s'.\n", atts[i + 1]);
-	exit(1);
+	ERROR("Invalid attribute's value `%s'", atts[i + 1]);
 }
 
 void end_handler(void *data, const char *name)
@@ -395,10 +337,7 @@ void read_config(const char *cfg)
 	FILE *fp = fopen(cfg, "r");
 	struct config_ctx ctx;
 	if (fp == 0)
-	{
-		fprintf(stderr, "Config file not found.\n");
-		exit(1);
-	}
+		ERROR("Config file not found: %s", cfg);
 	memset(&ctx, 0, sizeof(ctx));
 	XML_Parser parser = XML_ParserCreate(0);
 	XML_SetUserData(parser, &ctx);
@@ -412,20 +351,17 @@ void read_config(const char *cfg)
 		{
 			fclose(fp);
 			XML_ParserFree(parser);
-			fprintf(stderr, "Error reading file.\n");
-			exit(1);
+			ERROR("Error reading file");
 		}
 		if (!XML_ParseBuffer(parser, bytes_read, bytes_read == 0))
 		{
 			fclose(fp);
 			XML_ParserFree(parser);
-			fprintf(stderr, "Error parsing file.\n");
-			exit(1);
+			ERROR("Error parsing file");
 		}
 		if (bytes_read == 0)
 			break;
 	}
-	free(ctx.parent);
 	fclose(fp);
 	XML_ParserFree(parser);
 }
@@ -633,17 +569,11 @@ void start_device(struct device *device)
 	dev.device = device->dev;
 	dev.baud = device->baud;
 	dev.sid = 0;
-	switch (device->type)
-	{
-		case DEVICE_TYPE_ACR120S: 
-			mifare_ops = &acr120s_ops; 
-			break;
-		case DEVICE_TYPE_MF1RW:
-			mifare_ops = &mf1rw_ops;
-			break;
-		default:
-			return;
-	}
+	dev.ops = 0;
+	if (device->type == DEVICE_TYPE_ACR120S)
+		dev.ops = &acr120s_ops;
+	else if (device->type == DEVICE_TYPE_MF1RW)
+		dev.ops = &mf1rw_ops;
 
 	int error = 0;
 	for (;;)

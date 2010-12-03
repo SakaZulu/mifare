@@ -3,11 +3,13 @@
 
 #include <stdint.h>
 
+struct _mifare_ops_t;
 typedef struct
 {
 	char *device;
 	int baud;
 	int sid;
+	struct _mifare_ops_t *ops;
 } mifare_dev_t;
 
 enum 
@@ -26,7 +28,7 @@ typedef struct
 	uint8_t size;
 } mifare_tag_t;
 
-typedef struct
+typedef struct _mifare_ops_t
 {
 	int (*open)(mifare_dev_t *dev);
 	int (*close)(int handle);
@@ -52,8 +54,6 @@ typedef struct
 	int (*beep)(int handle, int msec);
 
 } mifare_ops_t;
-
-extern mifare_ops_t *mifare_ops;
 
 int mifare_open(mifare_dev_t *dev);
 int mifare_close(int handle);

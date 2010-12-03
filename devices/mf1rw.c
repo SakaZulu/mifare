@@ -765,12 +765,12 @@ static int _mf1rw_select(int handle, mifare_tag_t *tag)
 
 static int _mf1rw_login(int handle, uint8_t sector, int type, const void *key)
 {
-	return mf1rw_auth_key(handle, sector, type, key);
+	return mf1rw_auth_key(handle, type, sector, key);
 }
 
 static int _mf1rw_login_stored(int handle, uint8_t sector, int type, int key_no)
 {
-	return mf1rw_auth2(handle, sector, type, key_no);
+	return mf1rw_auth2(handle, type, sector, key_no);
 }
 
 static int _mf1rw_read_block(int handle, uint8_t block, void *data)
